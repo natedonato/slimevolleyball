@@ -2,45 +2,136 @@ class Game{
     constructor(ctx, canvas){
         this.ctx = ctx;
         this.canvas = canvas;
-        this.slimeRadius = 40;
-        this.player1 = new Slime(this.slimeRadius, 40, "blue" );
-        this.player2 = new Slime(this.slimeRadius, canvas.width - 40);
-        this.ball = new Ball(this.ballRadius, "green");
+        this.keys = {};
+        this.gravity = 1;
 
+        
+        this.floorLevel = canvas.height - 15;
+        this.slimeRadius = 40;
+        this.ballRadius = 25;
+        this.bgColor = 'rgb(135, 206, 250)';
+
+        this.player1 = new Slime(this.slimeRadius, 40, this.floorLevel, "blue" );
+        this.player2 = new Slime(this.slimeRadius, canvas.width - 40, this.floorLevel);
+        this.ball = new Ball(this.ballRadius, canvas.width / 2, canvas.height / 2, "green");
+
+        this.bindKeys();
         this.update = this.update.bind(this);
         this.update();
     }
 
+    
+    bindKeys() {
+        let game = this;
+        window.addEventListener("keydown", function (e) {
+            if (e.keyCode === 37 || e.keyCode === 38 || e.keyCode === 39 || e.keyCode === 40 || e.keyCode === 13) {
+                e.preventDefault();
+            }
+            game.keys[e.keyCode] = true;
+        });
 
+        window.addEventListener("keyup", function (e) {
+            game.keys[e.keyCode] = false;
+        });
+    }
 
+    handleKeys(){
+        if(this.keys[37]){
+            this.player1.moveLeft();
+        }
+        if(this.keys[39]){
+            this.player1.moveRight();
+        }
+        if(this.keys[38]){
+            this.player1.jump();
+        }
+        if(this.keys[80]){
+            debugger;
+        }
+    }
 
 
     draw(){
+        this.drawBackground();
+        this.drawFloor();
         this.drawSlime(this.player1);
         this.drawSlime(this.player2);
+        this.drawBall();
+    }
+
+    drawBackground(){
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = this.bgColor;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    drawFloor(){
+        this.ctx.fillStyle = "black";
+        this.ctx.fillRect(0, this.floorLevel, this.canvas.width, 15);
 
     }
 
     drawSlime(slime){
-        this.ctx.fillRect(slime.pos.x, slime.pos.y, slime.radius, slime.radius);
+        this.ctx.fillStyle = slime.color;
+        this.ctx.beginPath();
+        this.ctx.arc(slime.pos.x, slime.pos.y + slime.radius, slime.radius, 0, Math.PI, true);
+        this.ctx.fill();
     }
 
+    drawBall(){
+        this.ctx.fillStyle = this.ball.color;
+        this.ctx.beginPath();
+        this.ctx.arc(this.ball.pos.x, this.ball.pos.y + this.ball.radius, this.ball.radius, 0, 2 * Math.PI);
+        this.ctx.fill();
+    }
+
+    updatePositions(){
+        this.updateSlimePosition(this.player1);
+        if(this.player1.pos.x < 0 + this.player1.radius){this.player1.pos.x = this.player1.radius;}
+        this.updateSlimePosition(this.player2);
+        this.updateBallPosition();
+    }
+
+    updateBallPosition(){
+        this.ball.pos.x += this.ball.vel.x;
+        this.ball.pos.y += this.ball.vel.y;
+        if (this.ball.pos.y > this.floorLevel - 2 * this.ballRadius) {
+            this.ball.pos.y = this.floorLevel - 2 * this.ballRadius;
+            this.ball.vel.y = -this.ball.vel.y;
+        }
+        this.ball.vel.y += this.gravity;
+
+    }
+
+    updateSlimePosition(slime){
+        if(slime.vel.x > slime.maxSpeed){slime.vel.x = slime.maxSpeed;}
+        if(slime.vel.x < -slime.maxSpeed){slime.vel.x = -slime.maxSpeed;}
+        slime.pos.x += slime.vel.x;
+        slime.pos.y += slime.vel.y;
+        slime.vel.x *= 0.68;
+        if(slime.pos.y > 245){
+            slime.pos.y = 245;
+            slime.grounded = true;
+        }
+        if(!slime.grounded){slime.vel.y += this.gravity;}
+
+    }
 
     update(){
+        this.handleKeys();
+        this.updatePositions();
         this.draw();
-        console.log(this.player1);
-        this.player1.pos.x += 1;
         window.requestAnimationFrame(this.update);
     }
 
 }
 
 class MovingObject{
-    constructor(radius, x, color = "red") {
+    constructor(radius, x, y, color = "red") {
         this.radius = radius;
         this.pos = {
             x: x,
-            y: 0
+            y: y
         };
 
         this.vel = {
@@ -52,13 +143,24 @@ class MovingObject{
 }
 
 class Slime extends MovingObject{
-    constructor(radius, color = "red"){
-        super(radius, color);
+    constructor(radius, x, y, color = "red"){
+        super(radius, x, y - radius, color);
+        this.grounded = true;
+        this.maxSpeed = 12;
+    }
+
+    moveLeft(){
+        this.vel.x -= 3;        
+    }
+
+    moveRight(){
+        this.vel.x+= 3;
     }
 
     jump(){
-        if(this.pos.y === 0){
-            this.vel.y = 15;
+        if(this.pos.y === 245){
+            this.vel.y = -15;
+            this.grounded = false;
         }
     }
 
@@ -66,8 +168,8 @@ class Slime extends MovingObject{
 }
 
 class Ball extends MovingObject{
-    constructor(radius, color){
-        super(radius, color);
+    constructor(radius, x, y, color){
+        super(radius, x, y, color);
     }
 }
 
