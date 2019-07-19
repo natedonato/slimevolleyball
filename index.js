@@ -76,6 +76,8 @@ class Game{
         this.ctx.beginPath();
         this.ctx.arc(slime.pos.x, slime.pos.y + slime.radius, slime.radius, 0, Math.PI, true);
         this.ctx.fill();
+        this.ctx.fillStyle = "#000000";
+        this.ctx.stroke();
     }
 
     drawBall(){
@@ -89,16 +91,30 @@ class Game{
         this.updateSlimePosition(this.player1);
         if(this.player1.pos.x < 0 + this.player1.radius){this.player1.pos.x = this.player1.radius;}
         this.updateSlimePosition(this.player2);
+
+        this.detectBallCollision(this.player1);
+        this.detectBallCollision(this.player2);
+
         this.updateBallPosition();
     }
 
     updateBallPosition(){
         this.ball.pos.x += this.ball.vel.x;
         this.ball.pos.y += this.ball.vel.y;
-        if (this.ball.pos.y > this.floorLevel - 2 * this.ballRadius) {
+        if(this.ball.pos.y > this.floorLevel - 2 * this.ballRadius) {
             this.ball.pos.y = this.floorLevel - 2 * this.ballRadius;
             this.ball.vel.y = -this.ball.vel.y;
         }
+        if(this.ball.pos.x < 0 + this.ballRadius){
+            this.ball.pos.x = this.ballRadius;
+            this.ball.vel.x = -this.ball.vel.x;
+        }
+        if (this.ball.pos.x > this.canvas.width - this.ballRadius) { 
+            this.ball.pos.x = this.canvas.width - this.ballRadius;
+            this.ball.vel.x = -this.ball.vel.x;
+        }
+
+
         this.ball.vel.y += this.gravity;
 
     }
@@ -114,6 +130,24 @@ class Game{
             slime.grounded = true;
         }
         if(!slime.grounded){slime.vel.y += this.gravity;}
+
+    }
+
+    detectBallCollision(slime){
+        let dx = slime.pos.x - this.ball.pos.x;
+        let dy = slime.pos.y - this.ball.pos.y;  
+        let radii = slime.radius + this.ballRadius;
+
+        let tangentVectorX = -dy;
+        let tangentVectorY = dx;
+
+        
+
+        if ((dx * dx) + (dy * dy) < radii * radii) {
+
+
+
+        }
 
     }
 
@@ -146,20 +180,20 @@ class Slime extends MovingObject{
     constructor(radius, x, y, color = "red"){
         super(radius, x, y - radius, color);
         this.grounded = true;
-        this.maxSpeed = 12;
+        this.maxSpeed = 10;
     }
 
     moveLeft(){
-        this.vel.x -= 3;        
+        this.vel.x -= 2;        
     }
 
     moveRight(){
-        this.vel.x+= 3;
+        this.vel.x+= 2;
     }
 
     jump(){
         if(this.pos.y === 245){
-            this.vel.y = -15;
+            this.vel.y = -12;
             this.grounded = false;
         }
     }
