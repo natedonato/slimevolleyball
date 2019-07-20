@@ -16,6 +16,7 @@ class Game{
         this.ball = new Ball(this.ballRadius, canvas.width / 2, canvas.height / 2, "green");
 
         this.bindKeys();
+        this.spawnBall();
         this.update = this.update.bind(this);
         this.update();
     }
@@ -33,6 +34,17 @@ class Game{
         window.addEventListener("keyup", function (e) {
             game.keys[e.keyCode] = false;
         });
+    }
+
+    spawnBall(left = Math.random() < 0.5){
+        
+        if(left === true){
+            this.ball.pos.x = this.player1.pos.x;
+            this.ball.pos.y = this.player1.pos.y - 200;
+        }else{
+            this.ball.pos.x = this.player2.pos.x;
+            this.ball.pos.y = this.player2.pos.y - 200;}
+        
     }
 
     handleKeys(){
@@ -78,6 +90,8 @@ class Game{
         this.ctx.fill();
         this.ctx.fillStyle = "#000000";
         this.ctx.stroke();
+        this.ctx.fillStyle = "red";
+        this.ctx.fillRect(slime.pos.x, slime.pos.y, 2, 2);
     }
 
     drawBall(){
@@ -85,6 +99,9 @@ class Game{
         this.ctx.beginPath();
         this.ctx.arc(this.ball.pos.x, this.ball.pos.y + this.ball.radius, this.ball.radius, 0, 2 * Math.PI);
         this.ctx.fill();
+        this.ctx.fillStyle = "red";
+        this.ctx.fillRect(this.ball.pos.x, this.ball.pos.y, 2, 2);
+
     }
 
     updatePositions(){
@@ -133,19 +150,63 @@ class Game{
 
     }
 
+    rotate(vel,  angle) {
+        
+    const rotatedVelocities = {
+        x: vel.x * Math.cos(angle) - vel.y * Math.sin(angle),
+        y: vel.x * Math.sin(angle) + vel.y * Math.cos(angle)
+    };
+
+    return rotatedVelocities;
+}
+
+    resolveCollision(particle, otherParticle) {
+        
+
+    const xvelDiff = particle.vel.x - otherParticle.vel.x;
+    const yvelDiff = particle.vel.y - otherParticle.vel.y;
+
+    const xDist = otherParticle.pos.x - particle.pos.x;
+    const yDist = otherParticle.pos.y - particle.pos.y;
+
+    // Prevent accidental overlap of particles
+    if (xvelDiff * xDist + yvelDiff * yDist >= 0) {
+
+        // Grab angle between the two colliding particles
+        const angle = -Math.atan2(otherParticle.pos.y - particle.pos.y, otherParticle.pos.x - particle.pos.x);
+
+        // Store mass in var for better readability in collision equation
+        const m1 = particle.mass;
+        const m2 = otherParticle.mass;
+
+        // vel before equation
+        const u1 = this.rotate(particle.vel, angle);
+        const u2 = this.rotate(otherParticle.vel, angle);
+
+        // vel after 1d collision equation
+        const v1 = { x: u1.x * (m1 - m2) / (m1 + m2) + u2.x * 2 * m2 / (m1 + m2), y: u1.y };
+        const v2 = { x: u2.x * (m1 - m2) / (m1 + m2) + u1.x * 2 * m2 / (m1 + m2), y: u2.y };
+
+        // Final vel after rotating axis back to original location
+        const vFinal1 = this.rotate(v1, -angle);
+        const vFinal2 = this.rotate(v2, -angle);
+
+        // Swap particle velocities for realistic bounce effect
+        particle.vel.x = vFinal1.x;
+        particle.vel.y = vFinal1.y;
+
+        otherParticle.vel.x = vFinal2.x;
+        otherParticle.vel.y = vFinal2.y;
+        }
+    }
     detectBallCollision(slime){
         let dx = slime.pos.x - this.ball.pos.x;
         let dy = slime.pos.y - this.ball.pos.y;  
         let radii = slime.radius + this.ballRadius;
 
-        let tangentVectorX = -dy;
-        let tangentVectorY = dx;
+        if (((dx * dx) + (dy * dy)) < (radii * radii)) {
 
-        
-
-        if ((dx * dx) + (dy * dy) < radii * radii) {
-
-
+            this.resolveCollision(slime, this.ball);
 
         }
 
@@ -173,6 +234,8 @@ class MovingObject{
             y: 0
         };
         this.color = color;
+
+        this.mass = 1;
     }
 }
 
